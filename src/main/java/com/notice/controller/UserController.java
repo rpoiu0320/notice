@@ -17,12 +17,14 @@ public class UserController {
 	@GetMapping("/signup")
 	public String signupForm(Model model) {
 		model.addAttribute("user", User.builder());
+		
 		return "user/signup";
 	}
 
 	@PostMapping("/signup")
 	public String signupSubmit(@ModelAttribute User user) {
 		userService.save(user);
+		
 		return "redirect:/user/login";
 	}
 

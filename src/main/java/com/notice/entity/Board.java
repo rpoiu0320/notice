@@ -17,7 +17,7 @@ import lombok.Data;
 @Builder
 public class Board {
 
-	@Id
+	@Id				//	dbのpk、autoincrementと一緒		TODO:もっと勉強必要
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Long id;
 
@@ -28,6 +28,12 @@ public class Board {
 
 	private LocalDateTime createdDate;
 
+	/*
+	 * 1:1 @OneToOne 
+	 * 1:N @OneToMany 
+	 * N:1 @ManyToOne 
+	 * N:M @ManyToMany
+	 */
 	@ManyToOne
 	@JoinColumn(name = "user_id")
 	private User writer;

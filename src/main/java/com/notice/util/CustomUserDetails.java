@@ -11,11 +11,11 @@ import java.util.Collection;
 import java.util.Collections;
 
 @RequiredArgsConstructor
-public class CustomUserDetails implements UserDetails {
+public class CustomUserDetails implements UserDetails {	//	使用者の情報を持つ
 
 	private final User user;
 
-	@Override
+	@Override	//	使用者の権限をリターン
 	public Collection<? extends GrantedAuthority> getAuthorities() {
 		return Collections.emptyList();
 	}

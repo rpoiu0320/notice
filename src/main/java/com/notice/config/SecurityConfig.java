@@ -12,36 +12,36 @@ import com.notice.util.CustomUserDetailsService;
 
 import lombok.RequiredArgsConstructor;
 
-@Configuration
-@EnableWebSecurity
-@RequiredArgsConstructor
+@Configuration		//	このクラスは設定に利用するクラスだと明示
+@EnableWebSecurity	//	WebSecurity活性化	
+@RequiredArgsConstructor	//	finalがあるオブジェクトのコンストラクタを自動的に生成
 public class SecurityConfig {
 
 	private final CustomUserDetailsService userDetailsService;
 
-	@Bean
-	public PasswordEncoder passwordEncoder() {
+	@Bean	//	beanに登録、springで管理されるコンテナーにオブジェクトだと明示
+	public PasswordEncoder passwordEncoder() {	//	パスワードにハッシュ関数を適用
 		return new BCryptPasswordEncoder();
 	}
 
 	@Bean
 	public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
 		http.
-			csrf()
+			csrf()	//	token設定
 				.disable()
-			.authorizeHttpRequests()
-				.requestMatchers("/user/**")
-				.permitAll()
-				.anyRequest()
-				.authenticated()
+			.authorizeHttpRequests()	//	権限付与
+				.requestMatchers("/user/login\", \"/css/**\", \"/js/**\", \"/images/**")	//	こんなurlは
+				.permitAll()					//	みんな接続できる
+				.anyRequest()					//	他のurlは
+				.authenticated()				//	認証が必要
 			.and()
-				.formLogin()
-				.loginPage("/user/login")
-				.defaultSuccessUrl("/board/list")
+				.formLogin()			//	ログイン設定
+				.loginPage("/user/login")			//	ログインurl設定
+				.defaultSuccessUrl("/board/list")	//	ログインが成功した後、移動するurl
 			.and()
-				.logout()
-				.logoutSuccessUrl("/user/login")
-				.invalidateHttpSession(true);
+				.logout()				//	ログアウト設定
+				.logoutSuccessUrl("/user/login")	//	ログアウトurl設定
+				.invalidateHttpSession(true);		//	ログアウトした後、移動するurl
 
 		return http.build();
 	}

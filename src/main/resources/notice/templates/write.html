@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>공지사항 작성</title>
+</head>
+<body>
+<h1>공지사항 작성</h1>
+<form th:action="@{/notice/write}" method="post">
+    <label>제목: <input type="text" name="title"/></label><br/>
+    <label>작성자: <input type="text" name="writer"/></label><br/>
+    <label>내용: <textarea name="content"></textarea></label><br/>
+    <button type="submit">등록</button>
+</form>
+<a th:href="@{/}">목록으로</a>
+</body>
+</html>

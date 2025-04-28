@@ -1,0 +1,20 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>공지사항 상세보기</title>
+</head>
+<body>
+<h1 th:text="${notice.title}">제목</h1>
+<p>작성자: <span th:text="${notice.writer}">작성자</span></p>
+<p>작성일: <span th:text="${#temporals.format(notice.createdDate, 'yyyy-MM-dd')}">날짜</span></p>
+<p th:text="${notice.content}">내용</p>
+
+<a th:href="@{/notice/edit/{id}(id=${notice.id})}">수정</a>
+<form th:action="@{/notice/delete/{id}(id=${notice.id})}" method="post" style="display:inline">
+    <button type="submit">삭제</button>
+</form>
+<br/>
+<a th:href="@{/}">목록으로</a>
+</body>
+</html>

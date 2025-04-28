@@ -24,12 +24,14 @@ public class CommentController {
 //		comment.setAuthor(principal.getName());
 		comment.setContent(content);
 		commentService.save(comment);
+		
 		return "redirect:/board/detail/" + boardId;
 	}
 
 	@PostMapping("/delete/{id}")
 	public String delete(@PathVariable Long id, @RequestParam Long boardId) {
 		commentService.delete(id);
+		
 		return "redirect:/board/detail/" + boardId;
 	}
 }

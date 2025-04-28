@@ -39,6 +39,7 @@ public class Comment {
 	@JoinColumn(name = "parent_id")
 	private Comment parent;
 
+					//	parentがfk、		dbのcascadeと一緒
 	@OneToMany(mappedBy = "parent", cascade = CascadeType.ALL)
 	private List<Comment> replies;
 }
