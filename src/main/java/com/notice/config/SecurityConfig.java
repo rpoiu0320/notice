@@ -1,5 +1,6 @@
 package com.notice.config;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -7,42 +8,57 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
+import org.springframework.security.web.firewall.DefaultHttpFirewall;
+import org.springframework.security.web.firewall.HttpFirewall;
+import org.springframework.security.web.util.matcher.AntPathRequestMatcher;
 
 import com.notice.util.CustomUserDetailsService;
 
-import lombok.RequiredArgsConstructor;
 
-@Configuration		//	このクラスは設定に利用するクラスだと明示
-@EnableWebSecurity	//	WebSecurity活性化	
-@RequiredArgsConstructor	//	finalがあるオブジェクトのコンストラクタを自動的に生成
+@Configuration
+@EnableWebSecurity
 public class SecurityConfig {
-
-	private final CustomUserDetailsService userDetailsService;
-
-	@Bean	//	beanに登録、springで管理されるコンテナーにオブジェクトだと明示
-	public PasswordEncoder passwordEncoder() {	//	パスワードにハッシュ関数を適用
+	@Bean
+	public PasswordEncoder passwordEncode()	//パスワードをハッシュ化
+	{
 		return new BCryptPasswordEncoder();
 	}
 
 	@Bean
-	public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
-		http.
-			csrf()	//	token設定
-				.disable()
-			.authorizeHttpRequests()	//	権限付与
-				.requestMatchers("/**", "/js/**", "/images/**")	//	こんなurlは
-				.permitAll()					//	みんな接続できる
-				.anyRequest()					//	他のurlは
-				.authenticated()	;			//	認証が必要
-/*			.and()
-				.formLogin()			//	ログイン設定
-				.loginPage("/user/login")			//	ログインurl設定
-				.defaultSuccessUrl("/board/list")	//	ログインが成功した後、移動するurl
-			.and()
-				.logout()				//	ログアウト設定
-				.logoutSuccessUrl("/user/login")	//	ログアウトurl設定
-				.invalidateHttpSession(true);		//	ログアウトした後、移動するurl
-*/
+	public HttpFirewall getHttpFirewall()	//ファイアウォール設定
+	{
+		return new DefaultHttpFirewall();
+	}
+	
+	@Autowired
+	private CustomUserDetailsService customUserDetailsService;
+	
+	@Bean
+	public SecurityFilterChain sfc(HttpSecurity http) throws Exception //会員のログインについて
+	{
+		http
+			.formLogin(formLogin -> formLogin
+					.loginPage("/login")				//	使用者がログインをするurl
+					.loginProcessingUrl("/user/login")	//	認証処理をするurl
+					.usernameParameter("username")		//	使用者のパラメータ名
+					.defaultSuccessUrl("/", true)		//	ログイン成功時にredirectするページ
+					.failureForwardUrl("/error"))		//	失敗時
+			.logout(logout -> logout
+					.logoutRequestMatcher(new AntPathRequestMatcher("/user/logout"))	//	ログアウトのurl
+					.logoutSuccessUrl("/")												//	ログインと一緒
+					.invalidateHttpSession(true))										//	ログアウト時にsession削除可否
+			.authorizeHttpRequests(authorize -> authorize
+					.requestMatchers("/", "/user/**", "/comment/**", "/error")	// URLアクセス権限付与
+					.permitAll()										// 全ての使用者に
+					.requestMatchers("/admin/**")
+					.hasRole("ADMIN")				// 管理者だけに付与
+					.anyRequest().permitAll())
+			.csrf(csrf -> csrf
+					.csrfTokenRepository(CookieCsrfTokenRepository.withHttpOnlyFalse()))
+			.userDetailsService(customUserDetailsService);
+						//	認証されていないユーザーのリクエスト、例外処理ロジック
+		
 		return http.build();
 	}
 }

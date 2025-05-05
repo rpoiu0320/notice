@@ -11,11 +11,12 @@ import java.util.Collection;
 import java.util.Collections;
 
 @RequiredArgsConstructor
-public class CustomUserDetails implements UserDetails {	//	使用者の情報を持つ
+public class CustomUserDetails implements UserDetails {	// 使用者の情報を持つ
+	private static final long serialVersionUID = 1L;
 
 	private final User user;
 
-	@Override	//	使用者の権限をリターン
+	@Override // 使用者の権限をリターン
 	public Collection<? extends GrantedAuthority> getAuthorities() {
 		return Collections.emptyList();
 	}

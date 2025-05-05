@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org"
+   xmlns:layout="http://www.ultraq.net.nz/thymeleaf/layout"
+   xmlns:sec="http://www.thymeleaf.org/extras/spring-security">
+<head>
+<meta charset="UTF-8">
+<meta name="_csrf" th:content="${_csrf.token}" />
+<meta name="_csrf_header" th:content="${_csrf.headerName}" />
+<meta charset="UTF-8">
+<title>文章作成</title>
+<style>
+	body {
+		font-family: Arial, sans-serif;
+		margin: 0;
+		padding: 20px;
+		background-color: #f5f5f5;
+	}
+	
+	.container {
+		max-width: 800px;
+		margin: 0 auto;
+		background-color: white;
+		padding: 20px;
+		border-radius: 5px;
+		box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+	}
+	
+	h1 {
+		text-align: center;
+		margin-bottom: 20px;
+	}
+	
+	form {
+		display: flex;
+		flex-direction: column;
+	}
+	
+	label {
+		margin-top: 10px;
+		font-weight: bold;
+	}
+	
+	input, textarea {
+		padding: 8px;
+		margin-top: 5px;
+		border: 1px solid #ddd;
+		border-radius: 3px;
+	}
+	
+	textarea {
+		min-height: 300px;
+		resize: vertical;
+	}
+	
+	.buttons {
+		margin-top: 20px;
+		display: flex;
+		justify-content: center;
+		gap: 10px;
+	}
+	
+	button, .button {
+		padding: 10px 20px;
+		background-color: #007bff;
+		color: white;
+		border: none;
+		border-radius: 3px;
+		cursor: pointer;
+		text-decoration: none;
+		font-size: 14px;
+	}
+	
+	.button.cancel {
+		background-color: #6c757d;
+	}
+	
+	button:hover, .button:hover {
+		opacity: 0.9;
+	}
+</style>
+</head>
+<body>
+	<div class="container">
+		<h1>文章作成</h1>
+
+		<form action="/board/write" method="post">
+		<input type="hidden" th:name="${_csrf.parameterName}" th:value="${_csrf.token}"/>
+			<label for="title">タイトル</label> 
+			<input type="text" id="title" name="title" required>
+			<label for="content">内容</label>
+			<textarea id="content" name="content" required></textarea>
+			<div class="buttons">
+				<button type="submit">登録</button>
+				<a href="/" class="button cancel">キャンセル</a>
+			</div>
+		</form>
+	</div>
+</body>
+</html>

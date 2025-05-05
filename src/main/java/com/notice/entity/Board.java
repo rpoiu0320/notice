@@ -1,40 +1,49 @@
 package com.notice.entity;
 
-import java.time.LocalDateTime;
+import jakarta.persistence.*;
+import lombok.*;
+import org.hibernate.annotations.CreationTimestamp;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.JoinColumn;
-import jakarta.persistence.ManyToOne;
-import lombok.Builder;
-import lombok.Data;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
-@Data
-@Builder
+@Getter
+@Setter
+@ToString
+@NoArgsConstructor
+@AllArgsConstructor
 public class Board {
-
-	@Id				//	dbのpk、autoincrementと一緒		TODO:もっと勉強必要
+	
+	public enum SearchType {
+		TITLE,
+		CONTENT,
+		WRITER
+	}
+	
+	@Id
 	@GeneratedValue(strategy = GenerationType.IDENTITY)
 	private Long id;
 
+	@Column(nullable = false)
 	private String title;
 
-	@Column(columnDefinition = "TEXT")
+	@ToString.Exclude
+	@Column(nullable = false, columnDefinition = "TEXT")
 	private String content;
 
-	private LocalDateTime createdDate;
-
-	/*
-	 * 1:1 @OneToOne 
-	 * 1:N @OneToMany 
-	 * N:1 @ManyToOne 
-	 * N:M @ManyToMany
-	 */
 	@ManyToOne
+	@ToString.Exclude
 	@JoinColumn(name = "user_id")
-	private User writer;
+	private User user;
+	
+	private int views;
+
+	@CreationTimestamp
+	private LocalDateTime createdTime;
+
+	@ToString.Exclude
+	@OneToMany(mappedBy = "board", cascade = CascadeType.ALL, orphanRemoval = true)
+	private List<Comment> comments = new ArrayList<>();
 }

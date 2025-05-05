@@ -1,71 +1,171 @@
 package com.notice.controller;
 
+import com.notice.entity.Comment;
 import com.notice.entity.Board;
+import com.notice.entity.User;
+import com.notice.entity.Board.SearchType;
+import com.notice.service.CommentService;
 import com.notice.service.BoardService;
-import lombok.RequiredArgsConstructor;
+import com.notice.service.UserService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.domain.Page;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 
-import java.security.Principal;
+import jakarta.servlet.http.HttpSession;
 import java.util.List;
 
-@Controller		//	このクラスはコントローラーだと明示、使用者の行動によってコントローラーで処理
-@RequiredArgsConstructor
-@RequestMapping("/")	//	urlのなかと一緒すればここで処理
+@Controller
+@RequestMapping
 public class BoardController {
-			
-	private final BoardService boardService;
 
-	@GetMapping("/list")	//	requestMapping後のurlを探して処理
-	public String list(Model model) {
-		List<Board> boards = boardService.findAll();
-		model.addAttribute("boards", boards);
+	@Autowired
+	private BoardService boardService;
+
+	@Autowired
+	private UserService userService;
+
+	@Autowired
+	private CommentService commentService;
+
+	@GetMapping("/")
+	public String home(@RequestParam(name = "page", defaultValue = "0") int page,
+			@RequestParam(name = "size", defaultValue = "10") int size,
+			@RequestParam(name = "keyword", defaultValue = "") String keyword,
+			@RequestParam(name = "searchType", required = false) SearchType searchType, Model model,
+			HttpSession session) {
+		Page<Board> boardPage;
+
+		if (!keyword.isBlank() && keyword != null) {
+			searchType = searchType == null ? SearchType.TITLE : searchType; 
+			boardPage = boardService.searchBoards(keyword, searchType, page, size);
+			model.addAttribute("keyword", keyword);
+			model.addAttribute("searchType", searchType);
+		} else 
+			boardPage = boardService.getBoardPage(page, size);
 		
-		return "view";
+		model.addAttribute("boards", boardPage.getContent());
+		model.addAttribute("currentPage", page);
+		model.addAttribute("totalPages", boardPage.getTotalPages());
+		model.addAttribute("totalElements", boardPage.getTotalElements());
+		model.addAttribute("pageSize", size);
+
+		// 현재 로그인한 사용자 정보를 모델에 추가
+		Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+		if (auth != null && auth.isAuthenticated() && !auth.getName().equals("anonymousUser")) {
+			session.setAttribute("loggedInUser", auth.getName());
+			model.addAttribute("name", userService.getCurrentUser(session).getName());
+		} else
+			session.setAttribute("anonymous", auth.getName());
+
+		return "index";
 	}
 
-	@GetMapping("/write")
+	@GetMapping("/board/write")
 	public String writeForm(Model model) {
-		model.addAttribute("board", Board.builder());
-		
-		return "board/write";
+		model.addAttribute("board", new Board());
+		return "write";
 	}
 
-	@PostMapping("/write")		//	modelAttribute：formの情報を自動的に持って来る
-								//	principal：現在認証された使用者の情報を持って来る
-	public String writeSubmit(@ModelAttribute Board board, Principal principal) {
-		//	board.setAuthor(principal.getName());
-		boardService.save(board);
-		
-		return "redirect:/board/list";
+	@PostMapping("/board/write")
+	public String write(@ModelAttribute Board board, HttpSession session) {
+		String username = (String) session.getAttribute("loggedInUser");
+		User user = userService.getCurrentUser(session);
+		if (user == null) {
+			return "redirect:/login";
+		}
+
+		board.setUser(user);
+		boardService.saveBoard(board, username);
+		return "redirect:/";
 	}
 
-	@GetMapping("/detail/{id}")		//	urlの中にあるデータをすぐ持って来る、ここにはid
-	public String detail(@PathVariable Long id, Model model) {
-		boardService.findById(id).ifPresent(board -> model.addAttribute("board", board));
-		return "board/detail";
+	@GetMapping("/board/{id}")
+	public String detail(@PathVariable("id") Long id, Model model, HttpSession session) {
+		Board board = boardService.getBoardById(id);
+		if (board == null) {
+			return "redirect:/";
+		}
+
+		boardService.increaseViews(board);
+		List<Comment> comments = commentService.getCommentsByBoard(board);
+
+		model.addAttribute("board", board);
+		model.addAttribute("comments", comments);
+		model.addAttribute("loggedInUser", session.getAttribute("loggedInUser"));
+
+		return "detail";
 	}
 
-	@GetMapping("/edit/{id}")	
-	public String editForm(@PathVariable Long id, Model model) {
-		boardService.findById(id).ifPresent(board -> model.addAttribute("board", board));
-		
-		return "board/edit";
+	@GetMapping("/board/edit/{id}")
+	public String editForm(@PathVariable("id") Long id, HttpSession session, Model model) {
+		String username = (String) session.getAttribute("loggedInUser");
+		if (username == null) {
+			return "redirect:/login";
+		}
+
+		Board board = boardService.getBoardById(id);
+		if (board == null || !board.getUser().getUsername().equals(username)) {
+			return "redirect:/";
+		}
+
+		model.addAttribute("board", board);
+		return "edit";
 	}
 
-	@PostMapping("/edit/{id}")
-	public String editSubmit(@PathVariable Long id, @ModelAttribute Board board) {
-		board.setId(id);
-		boardService.save(board);
-		
-		return "redirect:/board/detail/" + id;
+	@PostMapping("/board/edit/{id}")
+	public String edit(@PathVariable("id") Long id, @ModelAttribute Board updatedBoard, HttpSession session) {
+		String username = (String) session.getAttribute("loggedInUser");
+		if (username == null) {
+			return "redirect:/login";
+		}
+
+		Board board = boardService.getBoardById(id);
+		if (board == null || !board.getUser().getUsername().equals(username)) {
+			return "redirect:/";
+		}
+
+		board.setTitle(updatedBoard.getTitle());
+		board.setContent(updatedBoard.getContent());
+		boardService.saveBoard(board, username);
+
+		return "redirect:/board/" + id;
 	}
 
-	@PostMapping("/delete/{id}")
-	public String delete(@PathVariable Long id) {
-		boardService.delete(id);
-		
-		return "redirect:/board/list";
+	@GetMapping("/board/delete/{id}")
+	public String delete(@PathVariable("id") Long id, HttpSession session) {
+		String username = (String) session.getAttribute("loggedInUser");
+		if (username == null) {
+			return "redirect:/login";
+		}
+
+		boardService.deleteBoard(id, username);
+		return "redirect:/";
+	}
+
+	@PostMapping("/comment/write")
+	public String writeComment(@RequestParam("content") String content, @RequestParam("boardId") Long boardId,
+			HttpSession session) {
+		String username = (String) session.getAttribute("loggedInUser");
+		if (username == null) {
+			return "redirect:/login";
+		}
+		commentService.saveComment(content, boardId, username);
+		return "redirect:/board/" + boardId;
+	}
+
+	@GetMapping("/comment/delete/{commentId}")
+	public String deleteComment(@PathVariable("commentId") Long commentId, @RequestParam("boardId") Long boardId,
+			HttpSession session) {
+		String username = (String) session.getAttribute("loggedInUser");
+		if (username == null) {
+			return "redirect:/login";
+		}
+
+		commentService.deleteComment(commentId, username);
+		return "redirect:/board/" + boardId;
 	}
 }
